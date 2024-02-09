@@ -24,7 +24,6 @@ def wiki_to_txt(urllistfile: str = "wikipedialist.csv", datadir: str = "textfile
             print(f" ... scraping {article} ...\n ")
             with open(os.path.join(dir_path, datadir, outfile), "w") as of:
                 of.write(soup.get_text())
-                print(of.name)
 
 
 if __name__ == "__main__":
