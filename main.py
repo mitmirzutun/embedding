@@ -8,15 +8,22 @@ import os.path
 import typing
 import promptflow.connections
 import promptflow
-EMBEDDING_DB="embedding.db"
-EMBEDDING_COLLECTION=llm.Collection("cities",sqlite_utils.Database("embedding.db"),model_id="sentence-transformers/all-MiniLM-L6-v2")
+EMBEDDING_DB = "embedding.db"
+EMBEDDING_COLLECTION=llm.Collection("cities",sqlite_utils.Database(EMBEDDING_DB),model_id="sentence-transformers/all-MiniLM-L6-v2")
+
+def embed_question(question):
+    con = sqlite3.connect(EMBEDDING_DB)
+    cur = con.cursor()
+    for (city, vector_binary) in cur.execute("select id, embedding from embeddings"):
+        pass
+    cur.close()
+    con.close()
 
 
 def embed(file_name: str) -> None:
     file=open(file_name).read()
     os.path.basename(file_name)
     EMBEDDING_COLLECTION.embed(os.path.basename(file_name).split(".")[0],file,store=True)
-    EMBEDDING_COLLECTION.embed(os.path.relpath(file_name),file,store=True)
 
 
 def grep_all_files(*paths: str) -> collections.abc.Iterator[str]:
@@ -84,7 +91,7 @@ def main():
     # print(pretty_print_top_ranks(top_ranks()))
     # total_ranking()
     pf = promptflow.PFClient()
-    connection = promptflow.connections.CustomConnection(secrets={"bla":"bla"},configs={"endpoint":"embedding.db"})
+    connection = promptflow.connections.CustomConnection(secrets={"bla":"bla"},configs={"endpoint":EMBEDDING_DB})
     result = pf.connections.create_or_update(connection)
     print(result)
     pf.connections.delete("default_connection")
