@@ -1,47 +1,20 @@
-import collections.abc
-import json
 import llm
-import os.path
+import json
+import sqlite_utils
 import sqlite3
 import subprocess
+import collections.abc
+import os.path
 EMBEDDING_DB="embedding.db"
-
-def cosine_similarity(a, b):
-    dot_product = sum(x * y for x, y in zip(a, b))
-    magnitude_a = sum(x * x for x in a) ** 0.5
-    magnitude_b = sum(x * x for x in b) ** 0.5
-    return dot_product / (magnitude_a * magnitude_b)
-
-
-def setup():
-    con = sqlite3.connect(EMBEDDING_DB)
-    cur = con.cursor()
-    cur.execute("create table embedding(file, score)")
-    cur.close()
-    con.close()
+EMBEDDING_COLLECTION=llm.Collection("cities",sqlite_utils.Database("embedding.db"),model_id="sentence-transformers/all-MiniLM-L6-v2")
 
 
 def embed(file_name: str) -> None:
-    if "'" in file_name:
-        raise ValueError("file name is a SQL Injection attempt")
-    if subprocess.run(["ls", EMBEDDING_DB], capture_output=True).returncode != 0:
-        setup()
-    file_name = os.path.relpath(file_name)
-    con = sqlite3.connect(EMBEDDING_DB)
-    cur = con.cursor()
-    if cur.execute(f"select 1 from embedding where file='{file_name}'").fetchone() is not None:
-        cur.close()
-        con.close()
-        return
-    embedding_model = llm.get_embedding_model("sentence-transformers/all-MiniLM-L6-v2")
-    file = open(file_name)
-    vector = embedding_model.embed(file.read())
-    file.close()
-    insert = "insert into embedding values ('"+file_name+"','"+json.dumps(vector)+"')"
-    cur.execute(insert)
-    con.commit()
-    cur.close()
-    con.close()
+    file=open(file_name).read()
+    os.path.basename(file_name)
+    EMBEDDING_COLLECTION.embed(os.path.basename(file_name).split(".")[0],file,store=True)
+    EMBEDDING_COLLECTION.embed(os.path.relpath(file_name),file,store=True)
+    pass
 
 
 def grep_all_files(*paths: str) -> collections.abc.Iterator[str]:
@@ -59,35 +32,41 @@ def grep_all_files(*paths: str) -> collections.abc.Iterator[str]:
         yield path
 
 
-def plot() -> None:
-    import matplotlib.pyplot
-    data = []
-    con = sqlite3.connect(EMBEDDING_DB)
+def main():
+    for file in grep_all_files("scraping/textfiles"):
+        embed(file)
+    con = sqlite3.Connection(EMBEDDING_DB)
     cur = con.cursor()
-    magnitude_x = []
-    magnitude_y = []
-    result = cur.execute("select e1.file, e1.score, e2.file, e2.score from embedding e1" +
-                         " cross join embedding e2 where e1.file!=e2.file")
-    for (file1, score1, file2, score2) in result:
-        array1 = json.loads(score1)
-        array2 = json.loads(score2)
-        data.append(cosine_similarity(array1, array2))
-        magnitude_x.append(sum(x*x for x in array1))
-        magnitude_y.append(sum(x*x for x in array2))
+    cities = list(map(lambda x: x[0],cur.execute("select id from embeddings").fetchall()))
+    print(cities)
+    for city in cities:
+        break
+        print(city)
+        data=EMBEDDING_COLLECTION.similar_by_id(city)
+        for (place,city2) in enumerate(data):
+            print(place+1,city2.id,city2.score)
+    cities = cur.execute("select e1.id, e1.embedding, e2.id, e2.embedding from embeddings e1 inner join embeddings e2 on e1.id!=e2.id").fetchall()
+    cities = map(lambda x: (x[0],x[2],llm.cosine_similarity(llm.decode(x[1]),llm.decode(x[3]))),cities)
+    tmp=set()
+    for city_pair in cities:
+        tmp.add(frozenset(city_pair))
+    cities=[]
+    for city_pair in tmp:
+        city_pair_tmp=list(city_pair)
+        if type(city_pair_tmp[2])==float:
+            cities.append(city_pair_tmp)
+        elif type(city_pair_tmp[1])==float:
+            city_pair_tmp[1], city_pair_tmp[2] = city_pair_tmp[2], city_pair_tmp[1]
+            cities.append(city_pair_tmp)
+        elif type(city_pair_tmp[0])==float:
+            city_pair_tmp[0], city_pair_tmp[2] = city_pair_tmp[2], city_pair_tmp[0]
+            cities.append(city_pair_tmp)
+    cities = sorted(cities,key=lambda x: x[2],reverse=True)
+    with open("ranking.csv","w") as csv_file:
+        for city in cities:
+            csv_file.write("{};{};{}\n".format(*city))
     cur.close()
     con.close()
-    _figure, axes = matplotlib.pyplot.subplots(2, 2)
-    axes[0, 0].scatter(range(len(data)), data)
-    axes[0, 1].scatter(magnitude_x, magnitude_y)
-    matplotlib.pyplot.savefig("embedding_visualized.png")
-    matplotlib.pyplot.show()
-
-
-def main():
-    for path in grep_all_files("data", "scraping/textfiles"):
-        embed(path)
-    plot()
-    # subprocess.run(["rm","embedding.db"])
 
 
 if __name__ == "__main__":
