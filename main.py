@@ -6,6 +6,8 @@ import subprocess
 import collections.abc
 import os.path
 import typing
+import promptflow.connections
+import promptflow
 EMBEDDING_DB="embedding.db"
 EMBEDDING_COLLECTION=llm.Collection("cities",sqlite_utils.Database("embedding.db"),model_id="sentence-transformers/all-MiniLM-L6-v2")
 
@@ -79,9 +81,13 @@ def total_ranking(file_name: str="ranking.csv") -> None:
 def main():
     for file in grep_all_files("scraping/textfiles"):
         embed(file)
-    print(pretty_print_top_ranks(top_ranks()))
-    total_ranking()
-
+    # print(pretty_print_top_ranks(top_ranks()))
+    # total_ranking()
+    pf = promptflow.PFClient()
+    connection = promptflow.connections.CustomConnection(secrets={"bla":"bla"},configs={"endpoint":"embedding.db"})
+    result = pf.connections.create_or_update(connection)
+    print(result)
+    pf.connections.delete("default_connection")
 
 if __name__ == "__main__":
     main()
