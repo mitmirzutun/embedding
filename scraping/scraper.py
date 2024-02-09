@@ -11,19 +11,22 @@ def get_last_url_part(url: str):
     return url_path.name
 
 
-def wiki_to_txt(_infile) -> None:
-    with open("wikipedialist.csv") as infile:
+def wiki_to_txt(urllistfile: str = "wikipedialist.csv", datadir: str = "textfiles") -> None:
+    with open(urllistfile) as infile:
         wikiurls = infile.read().split("\n")
 
     for url in wikiurls:
         if len(url) > 0:
             response = requests.get(url=url)
             soup = BeautifulSoup(response.content, 'html.parser')
-            outfile = get_last_url_part(url) + ".txt"
-            with open(os.path.join(dir_path, "textfiles", outfile), "w") as of:
+            article = get_last_url_part(url)
+            outfile = article + ".txt"
+            print(f" ... scraping {article} ...\n ")
+            with open(os.path.join(dir_path, datadir, outfile), "w") as of:
                 of.write(soup.get_text())
+                print(of.name)
 
 
 if __name__ == "__main__":
-    print(get_last_url_part("https://thewalrus.ca/the-ethnic-vote-is-a-myth"))
+    #print(get_last_url_part("https://thewalrus.ca/the-ethnic-vote-is-a-myth"))
     wiki_to_txt(os.path.join(dir_path, "wikipedialist.csv"))
