@@ -5,6 +5,7 @@ import sqlite3
 import subprocess
 import collections.abc
 import os.path
+import typing
 EMBEDDING_DB="embedding.db"
 EMBEDDING_COLLECTION=llm.Collection("cities",sqlite_utils.Database("embedding.db"),model_id="sentence-transformers/all-MiniLM-L6-v2")
 
@@ -31,22 +32,32 @@ def grep_all_files(*paths: str) -> collections.abc.Iterator[str]:
     if os.path.isfile(path):
         yield path
 
-
-def main():
-    for file in grep_all_files("scraping/textfiles"):
-        embed(file)
+def top_ranks(number: int = 10) -> typing.Dict[str,collections.abc.Iterable[(str,float)]]:
     con = sqlite3.Connection(EMBEDDING_DB)
     cur = con.cursor()
-    cities = list(map(lambda x: x[0],cur.execute("select id from embeddings").fetchall()))
-    print(cities)
-    for city in cities:
-        break
-        print(city)
-        data=EMBEDDING_COLLECTION.similar_by_id(city)
-        for (place,city2) in enumerate(data):
-            print(place+1,city2.id,city2.score)
+    result: typing.Dict[str,collections.abc.Iterable[str]] = dict()
+    for (city,) in cur.execute("select id from embeddings"):
+        tmp = EMBEDDING_COLLECTION.similar_by_id(city,number)
+        tmp = list(map(lambda x: (x.id,x.score),tmp))
+        result[city] = tmp
+    cur.close()
+    con.close()
+    return result
+
+def pretty_print_top_ranks(data: typing.Dict[str,collections.abc.Iterable[(str,float)]]) -> str:
+    result = ""
+    for (key, cities) in data.items():
+        tmp = key
+        for (rank, city_data) in enumerate(cities):
+            tmp += "\n{}. {} {}".format(rank+1, city_data[0], city_data[1])
+        result += "\n" + tmp
+    return result
+
+def total_ranking(file_name: str="ranking.csv") -> None:
+    con = sqlite3.Connection(EMBEDDING_DB)
+    cur = con.cursor()
     cities = cur.execute("select e1.id, e1.embedding, e2.id, e2.embedding from embeddings e1 inner join embeddings e2 on e1.id!=e2.id").fetchall()
-    cities = map(lambda x: (x[0],x[2],llm.cosine_similarity(llm.decode(x[1]),llm.decode(x[3]))),cities)
+    cities = list(map(lambda x: (x[0],x[2],llm.cosine_similarity(llm.decode(x[1]),llm.decode(x[3]))),cities))
     tmp=set()
     for city_pair in cities:
         tmp.add(frozenset(city_pair))
@@ -62,11 +73,15 @@ def main():
             city_pair_tmp[0], city_pair_tmp[2] = city_pair_tmp[2], city_pair_tmp[0]
             cities.append(city_pair_tmp)
     cities = sorted(cities,key=lambda x: x[2],reverse=True)
-    with open("ranking.csv","w") as csv_file:
+    with open(file_name,"w") as csv_file:
         for city in cities:
             csv_file.write("{};{};{}\n".format(*city))
-    cur.close()
-    con.close()
+
+def main():
+    for file in grep_all_files("scraping/textfiles"):
+        embed(file)
+    print(pretty_print_top_ranks(top_ranks()))
+    total_ranking()
 
 
 if __name__ == "__main__":
