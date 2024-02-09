@@ -1,4 +1,4 @@
-import llm
+import llm #type: ignore
 import json
 import sqlite_utils
 import sqlite3
@@ -15,7 +15,6 @@ def embed(file_name: str) -> None:
     os.path.basename(file_name)
     EMBEDDING_COLLECTION.embed(os.path.basename(file_name).split(".")[0],file,store=True)
     EMBEDDING_COLLECTION.embed(os.path.relpath(file_name),file,store=True)
-    pass
 
 
 def grep_all_files(*paths: str) -> collections.abc.Iterator[str]:
@@ -64,12 +63,12 @@ def total_ranking(file_name: str="ranking.csv") -> None:
     cities=[]
     for city_pair in tmp:
         city_pair_tmp=list(city_pair)
-        if type(city_pair_tmp[2])==float:
+        if type(city_pair_tmp[2]) == float:
             cities.append(city_pair_tmp)
-        elif type(city_pair_tmp[1])==float:
+        elif type(city_pair_tmp[1]) == float:
             city_pair_tmp[1], city_pair_tmp[2] = city_pair_tmp[2], city_pair_tmp[1]
             cities.append(city_pair_tmp)
-        elif type(city_pair_tmp[0])==float:
+        elif type(city_pair_tmp[0]) == float:
             city_pair_tmp[0], city_pair_tmp[2] = city_pair_tmp[2], city_pair_tmp[0]
             cities.append(city_pair_tmp)
     cities = sorted(cities,key=lambda x: x[2],reverse=True)
