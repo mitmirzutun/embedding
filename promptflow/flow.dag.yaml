@@ -2,7 +2,7 @@ $schema: https://azuremlschemas.azureedge.net/promptflow/latest/Flow.schema.json
 inputs:
   question:
     type: string
-    default: Milan
+    default: Tondorf
 outputs:
   similar_cities:
     type: list
@@ -21,4 +21,4 @@ nodes:
     type: code
     path: embed_question.py
   inputs:
-    question: ${hello_prompt.output}
+    question: ${inputs.question}
