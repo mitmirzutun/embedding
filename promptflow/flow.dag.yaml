@@ -1,11 +1,12 @@
 $schema: https://azuremlschemas.azureedge.net/promptflow/latest/Flow.schema.json
 inputs:
-  text:
+  question:
     type: string
+    default: Milan
 outputs:
-  output_prompt:
-    type: string
-    reference: ${echo_my_prompt.output}
+  similar_cities:
+    type: list
+    reference: ${embed_question.output}
 nodes:
 - name: hello_prompt
   type: prompt
@@ -13,13 +14,11 @@ nodes:
     type: code
     path: hello.jinja2
   inputs:
-    text: ${inputs.text}
-- name: echo_my_prompt
+    text: ${inputs.question}
+- name: embed_question
   type: python
   source:
     type: code
-    path: hello.py
+    path: embed_question.py
   inputs:
-    input1: ${hello_prompt.output}
-environment:
-  python_requirements_txt: requirements.txt
+    question: ${hello_prompt.output}
