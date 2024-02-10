@@ -1,15 +1,18 @@
+from typing import Any
 import llm
 import sqlite_utils
 from promptflow import tool
 from os.path import dirname, abspath, join
+from json import JSONEncoder
 parentdir = dirname(dirname(abspath(__file__)))
 EMBEDDING_DB = join(parentdir, "embedding.db")
 
-class EntryWrapper:
-    def __init__(self,entity: llm.embeddings.Entry) -> None:
-        self.entity=entity
-    def __str__(self) -> str:
-        return self.entity.content
+def trim(data: str):
+    tmp=list(filter(lambda x: x!="",data.splitlines()))
+    return "\n".join(tmp)
+
+def generate(e: llm.embeddings.Entry):
+    return (trim(e.content),len(e.content), len(trim(e.content)))
 
 @tool
 def get_data(question: str) -> list:
@@ -17,7 +20,7 @@ def get_data(question: str) -> list:
     quevector = quembedding.embed(question)
     EMBEDDING_COLLECTION=llm.Collection("cities",sqlite_utils.Database(EMBEDDING_DB),model_id="sentence-transformers/all-MiniLM-L6-v2")
     nearest_entries = EMBEDDING_COLLECTION.similar_by_vector(quevector,1,1)
-    nearest_ids = [ EntryWrapper(e) for e in nearest_entries]
+    nearest_ids = [ generate(e) for e in nearest_entries]
     return nearest_ids
 
 if __name__ == "__main__":
