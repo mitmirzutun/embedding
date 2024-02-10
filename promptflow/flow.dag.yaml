@@ -28,7 +28,7 @@ nodes:
     type: code
     path: generate_answer.py
   inputs:
-    data: ${combine_promt.output}
+    data: ${combine_prompt.output}
 - name: combine_prompt
   type: prompt
   source:
