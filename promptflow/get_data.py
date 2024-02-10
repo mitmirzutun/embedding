@@ -12,7 +12,7 @@ def trim(data: str):
     return "\n".join(tmp)
 
 def generate(e: llm.embeddings.Entry):
-    return (trim(e.content),len(e.content), len(trim(e.content)))
+    return (e.id)
 
 @tool
 def get_data(question: str) -> list:
@@ -24,4 +24,6 @@ def get_data(question: str) -> list:
     return nearest_ids
 
 if __name__ == "__main__":
+    model=llm.get_model("orca-mini-3b-gguf2-q4_0")
+    print(model.prompt("Wo ist Tondorf?"))
     print(get_data("Tondorf"))
