@@ -6,7 +6,7 @@ parentdir = dirname(dirname(abspath(__file__)))
 EMBEDDING_DB = join(parentdir, "embedding.db")
 
 @tool
-def embed_question(question: str) -> list:
+def get_data(question: str) -> list:
     quembedding = llm.get_embedding_model("sentence-transformers/all-MiniLM-L6-v2")
     quevector = quembedding.embed(question)
     EMBEDDING_COLLECTION=llm.Collection("cities",sqlite_utils.Database(EMBEDDING_DB),model_id="sentence-transformers/all-MiniLM-L6-v2")
@@ -15,4 +15,4 @@ def embed_question(question: str) -> list:
     return nearest_ids
 
 if __name__ == "__main__":
-    print(embed_question("Tondorf"))
+    get_data(embed_question("Tondorf"))
