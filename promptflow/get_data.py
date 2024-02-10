@@ -15,4 +15,4 @@ def get_data(question: str) -> list:
     return nearest_ids
 
 if __name__ == "__main__":
-    get_data(embed_question("Tondorf"))
+    print(get_data("Tondorf"))
