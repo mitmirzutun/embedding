@@ -1,7 +1,7 @@
 from typing import Any
-import llm
+import llm #type: ignore
 import sqlite_utils
-from promptflow import tool
+from promptflow import tool #type: ignore
 from os.path import dirname, abspath, join
 from json import JSONEncoder
 parentdir = dirname(dirname(abspath(__file__)))

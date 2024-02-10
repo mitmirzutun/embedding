@@ -27,6 +27,12 @@ nodes:
   source:
     type: code
     path: generate_answer.py
+  inputs: {}
+- name: combine_prompt
+  type: prompt
+  source:
+    type: code
+    path: answer.jinja2
   inputs:
     question: ${inputs.question}
-    data: ${output.get_data}
+    data: ${get_data.output}
