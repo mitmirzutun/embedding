@@ -6,7 +6,7 @@ inputs:
 outputs:
   similar_cities:
     type: list
-    reference: ${embed_question.output}
+    reference: ${get_data.output}
 nodes:
 - name: hello_prompt
   type: prompt
@@ -15,10 +15,18 @@ nodes:
     path: hello.jinja2
   inputs:
     text: ${inputs.question}
-- name: embed_question
+- name: get_data
   type: python
   source:
     type: code
-    path: embed_question.py
+    path: get_data.py
   inputs:
     question: ${inputs.question}
+- name: generate_answer
+  type: python
+  source:
+    type: code
+    path: generate_answer.py
+  inputs:
+    question: ${inputs.question}
+    data: ${output.get_data}
